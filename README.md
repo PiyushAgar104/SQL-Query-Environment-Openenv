@@ -1,3 +1,12 @@
+---
+title: SQL Query Env
+emoji: 🗃️
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 8000
+---
+
 # 🗃️ SQL Query Environment
 
 **An OpenEnv environment for teaching AI agents to write correct SQL queries.**
@@ -116,7 +125,7 @@ On `submit_query`:
 | `columns` | `list[str]` | Output column names |
 | `rows` | `list[list]` | Query result rows (up to 20) |
 | `total_rows` | `int` | Total row count |
-| `error` | `str \| null` | Error message if query failed |
+| `error` | `str or null` | Error message if query failed |
 
 ## Tasks
 
@@ -140,7 +149,7 @@ On `submit_query`:
 Scores range from **0.0 to 1.0** using weighted partial credit:
 
 ```
-Score = 0.2 × execution_score + 0.3 × column_score + 0.5 × data_score
+Score = 0.2 * execution_score + 0.3 * column_score + 0.5 * data_score
 ```
 
 | Component | Weight | What it measures |
@@ -163,15 +172,15 @@ pip install -e .
 # Start the server
 uvicorn server.app:app --host 0.0.0.0 --port 8000 --reload
 
-# Open web interface
-open http://localhost:8000/web
+# Open API docs
+open http://localhost:8000/docs
 ```
 
 ### Run with Docker
 
 ```bash
 # Build the image
-docker build -t sql-query-env -f server/Dockerfile .
+docker build -t sql-query-env .
 
 # Run the container
 docker run -p 8000:8000 sql-query-env
@@ -223,7 +232,7 @@ openenv push --repo-id YOUR_USERNAME/sql_query_env
 | `GET` | `/state` | Get current episode state |
 | `GET` | `/health` | Health check |
 | `GET` | `/schema` | JSON schema for action/observation types |
-| `GET` | `/web` | Interactive web interface |
+| `GET` | `/docs` | Swagger API documentation |
 | `WS` | `/ws` | WebSocket connection for persistent sessions |
 
 ### Reset Parameters
@@ -248,38 +257,6 @@ openenv push --repo-id YOUR_USERNAME/sql_query_env
         }
     }
 }
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│              Agent / Client                  │
-│  ┌─────────────────────────────────────┐    │
-│  │  SQLQueryEnv (MCPToolClient)        │    │
-│  │  - list_tools()                     │    │
-│  │  - call_tool("submit_query", sql=…) │    │
-│  │  - call_tool("get_schema")          │    │
-│  │  - call_tool("get_hint")            │    │
-│  └──────────────┬──────────────────────┘    │
-└─────────────────┼───────────────────────────┘
-                  │ WebSocket / HTTP
-┌─────────────────▼───────────────────────────┐
-│         Docker Container                     │
-│  ┌─────────────────────────────────────┐    │
-│  │  FastAPI Server (app.py)            │    │
-│  │  ┌─────────────────────────────┐    │    │
-│  │  │ SQLQueryEnvironment         │    │    │
-│  │  │  - reset() → task + schema  │    │    │
-│  │  │  - step() → grade query     │    │    │
-│  │  │  - state → episode info     │    │    │
-│  │  │  ┌──────────┐ ┌─────────┐  │    │    │
-│  │  │  │ SQLite   │ │ Grader  │  │    │    │
-│  │  │  │ Database │ │ (0-1.0) │  │    │    │
-│  │  │  └──────────┘ └─────────┘  │    │    │
-│  │  └─────────────────────────────┘    │    │
-│  └─────────────────────────────────────┘    │
-└─────────────────────────────────────────────┘
 ```
 
 ## License
